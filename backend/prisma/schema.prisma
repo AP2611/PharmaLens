@@ -1,0 +1,45 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String         @id @default(uuid())
+  name         String
+  email        String         @unique
+  passwordHash String         @map("password_hash")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  prescriptions Prescription[]
+
+  @@map("users")
+}
+
+model Prescription {
+  id               String           @id @default(uuid())
+  userId           String           @map("user_id")
+  rawText          String           @db.Text @map("raw_text")
+  uploadedImagePath String?         @map("uploaded_image_path")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  analysisResults  AnalysisResult[]
+
+  @@map("prescriptions")
+}
+
+model AnalysisResult {
+  id            String       @id @default(uuid())
+  prescriptionId String      @map("prescription_id")
+  llmResponse   Json         @map("llm_response")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  prescription  Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+
+  @@map("analysis_results")
+}
+

@@ -1,17 +1,92 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Camera, 
   Upload, 
   FileText, 
   Lock, 
   CheckCircle2,
-  ArrowRight
+  ArrowRight,
+  Loader2,
+  X
 } from "lucide-react";
-import doctorConsultation from "@/assets/doctor-consultation.jpg";
+import { useAuth } from "@/contexts/AuthContext";
+import { apiClient } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { PrescriptionAnalysis } from "@/lib/api";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { AuthDialog } from "@/components/auth/AuthDialog";
 
-export function PrescriptionInputSection() {
+interface PrescriptionInputSectionProps {
+  onAnalysisComplete?: (analysis: PrescriptionAnalysis) => void;
+}
+
+export function PrescriptionInputSection({ onAnalysisComplete }: PrescriptionInputSectionProps) {
   const [selectedMethod, setSelectedMethod] = useState<"upload" | "manual" | null>(null);
+  const [prescriptionText, setPrescriptionText] = useState("");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showManualInput, setShowManualInput] = useState(false);
+  const { isAuthenticated } = useAuth();
+  const { toast } = useToast();
+
+  const handleAnalyze = async () => {
+    if (!prescriptionText.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter prescription text",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to analyze prescriptions",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsAnalyzing(true);
+    try {
+      const response = await apiClient.analyzePrescription({
+        rawText: prescriptionText,
+      });
+      
+      toast({
+        title: "Analysis Complete",
+        description: "Your prescription has been analyzed successfully",
+      });
+
+      if (onAnalysisComplete) {
+        onAnalysisComplete(response.data.analysis);
+      }
+
+      // Scroll to dashboard
+      document.getElementById("guide")?.scrollIntoView({ behavior: "smooth" });
+      
+      // Reset form
+      setPrescriptionText("");
+      setShowManualInput(false);
+      setSelectedMethod(null);
+    } catch (error) {
+      toast({
+        title: "Analysis Failed",
+        description: error instanceof Error ? error.message : "Failed to analyze prescription",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   return (
     <section id="upload" className="py-20 bg-background">
@@ -31,9 +106,13 @@ export function PrescriptionInputSection() {
           <div className="hidden lg:block lg:col-span-2 animate-slide-up" style={{ animationDelay: "0.2s" }}>
             <div className="sticky top-24 overflow-hidden rounded-2xl shadow-elevated">
               <img 
-                src={doctorConsultation} 
+                src="/src/assets/doctor-consultation.jpg" 
                 alt="Doctor reviewing prescription with patient" 
                 className="w-full h-auto object-cover aspect-[3/4]"
+                onError={(e) => {
+                  // Fallback if image doesn't load
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-primary/30 via-transparent to-transparent" />
               <div className="absolute bottom-4 left-4 right-4 rounded-xl bg-background/90 backdrop-blur-sm p-4 border border-border/50">
@@ -49,7 +128,21 @@ export function PrescriptionInputSection() {
           <div className="lg:col-span-3 space-y-6">
             {/* Upload Option */}
             <button
-              onClick={() => setSelectedMethod("upload")}
+              onClick={() => {
+                if (!isAuthenticated) {
+                  toast({
+                    title: "Authentication Required",
+                    description: "Please sign in to upload prescriptions",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                setSelectedMethod("upload");
+                toast({
+                  title: "Coming Soon",
+                  description: "Image upload feature will be available soon. Please use manual entry for now.",
+                });
+              }}
               className={`group relative w-full flex flex-col items-center rounded-2xl border-2 p-8 text-left transition-all duration-300 animate-slide-up ${
                 selectedMethod === "upload"
                   ? "border-primary bg-primary/5 shadow-card scale-[1.02]"
@@ -92,7 +185,18 @@ export function PrescriptionInputSection() {
 
             {/* Manual Entry Option */}
             <button
-              onClick={() => setSelectedMethod("manual")}
+              onClick={() => {
+                if (!isAuthenticated) {
+                  toast({
+                    title: "Authentication Required",
+                    description: "Please sign in to analyze prescriptions",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                setSelectedMethod("manual");
+                setShowManualInput(true);
+              }}
               className={`group relative w-full flex flex-col items-center rounded-2xl border-2 p-8 text-left transition-all duration-300 animate-slide-up ${
                 selectedMethod === "manual"
                   ? "border-primary bg-primary/5 shadow-card scale-[1.02]"
@@ -134,9 +238,18 @@ export function PrescriptionInputSection() {
             </button>
 
             {/* Continue Button */}
-            {selectedMethod && (
+            {selectedMethod && !showManualInput && (
               <div className="flex flex-col items-center gap-4 animate-fade-in">
-                <Button variant="hero" size="xl" className="w-full group">
+                <Button 
+                  variant="hero" 
+                  size="xl" 
+                  className="w-full group"
+                  onClick={() => {
+                    if (selectedMethod === "manual") {
+                      setShowManualInput(true);
+                    }
+                  }}
+                >
                   Continue with {selectedMethod === "upload" ? "Upload" : "Manual Entry"}
                   <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
                 </Button>
@@ -144,6 +257,53 @@ export function PrescriptionInputSection() {
             )}
           </div>
         </div>
+
+        {/* Manual Input Dialog */}
+        <Dialog open={showManualInput} onOpenChange={setShowManualInput}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Enter Prescription Details</DialogTitle>
+              <DialogDescription>
+                Enter your prescription text. Include medication names, dosages, and schedules.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Textarea
+                placeholder="Example: Take Aspirin 100mg twice daily after meals. Metformin 500mg once daily with breakfast..."
+                value={prescriptionText}
+                onChange={(e) => setPrescriptionText(e.target.value)}
+                className="min-h-[200px]"
+              />
+              <div className="flex gap-2 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowManualInput(false);
+                    setPrescriptionText("");
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleAnalyze}
+                  disabled={isAnalyzing || !prescriptionText.trim()}
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      Analyze Prescription
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Privacy Reassurance */}
         <div className="mx-auto mt-10 flex max-w-lg items-center justify-center gap-3 rounded-xl bg-accent/50 px-6 py-4 animate-fade-in transition-all duration-300 hover:bg-accent/70" style={{ animationDelay: "0.4s" }}>
@@ -153,6 +313,15 @@ export function PrescriptionInputSection() {
             healthcare privacy standards.
           </p>
         </div>
+
+        {/* Auth Prompt */}
+        {!isAuthenticated && (
+          <div className="mx-auto mt-6 flex max-w-lg items-center justify-center gap-3 rounded-xl bg-primary/10 px-6 py-4 animate-fade-in">
+            <p className="text-sm text-foreground">
+              Please <AuthDialog /> to analyze prescriptions
+            </p>
+          </div>
+        )}
       </div>
     </section>
   );

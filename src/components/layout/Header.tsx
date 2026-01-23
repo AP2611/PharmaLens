@@ -11,6 +11,9 @@ import {
   Lightbulb, 
   User 
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { AuthDialog } from "@/components/auth/AuthDialog";
+import { UserMenu } from "@/components/auth/UserMenu";
 
 const navItems = [
   { label: "Home", icon: Home, href: "#" },
@@ -22,6 +25,7 @@ const navItems = [
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { isAuthenticated } = useAuth();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
@@ -52,13 +56,19 @@ export function Header() {
 
         {/* Desktop Auth */}
         <div className="hidden items-center gap-3 lg:flex">
-          <Button variant="ghost" size="sm">
-            Sign In
-          </Button>
-          <Button size="sm">
-            <User className="h-4 w-4" />
-            Get Started
-          </Button>
+          {isAuthenticated ? (
+            <UserMenu />
+          ) : (
+            <>
+              <AuthDialog />
+              <Button size="sm" asChild>
+                <a href="#upload">
+                  <User className="h-4 w-4" />
+                  Get Started
+                </a>
+              </Button>
+            </>
+          )}
         </div>
 
         {/* Mobile Menu Button */}
@@ -88,8 +98,16 @@ export function Header() {
               </a>
             ))}
             <div className="mt-4 flex flex-col gap-2 border-t border-border pt-4">
-              <Button variant="outline" className="w-full">Sign In</Button>
-              <Button className="w-full">Get Started</Button>
+              {isAuthenticated ? (
+                <UserMenu />
+              ) : (
+                <>
+                  <AuthDialog />
+                  <Button className="w-full" asChild>
+                    <a href="#upload">Get Started</a>
+                  </Button>
+                </>
+              )}
             </div>
           </nav>
         </div>

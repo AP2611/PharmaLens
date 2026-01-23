@@ -164,6 +164,32 @@ class ApiClient {
   async getPrescriptionHistory(): Promise<PrescriptionHistoryResponse> {
     return this.request<PrescriptionHistoryResponse>('/prescription/history');
   }
+
+  // Upload and analyze prescription image
+  async uploadAndAnalyzePrescription(file: File): Promise<PrescriptionResponse> {
+    const token = localStorage.getItem('auth_token');
+    
+    const formData = new FormData();
+    formData.append('prescriptionImage', file);
+
+    const headers: HeadersInit = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${this.baseURL}/prescription/upload`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(error.error || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);

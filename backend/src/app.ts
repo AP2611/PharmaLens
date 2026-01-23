@@ -21,6 +21,12 @@ export function createApp(): Express {
   }));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+  
+  // Serve uploaded files (for development)
+  if (process.env.NODE_ENV === 'development') {
+    const path = require('path');
+    app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+  }
 
   // Health check endpoint
   app.get('/health', (req, res) => {

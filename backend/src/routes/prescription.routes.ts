@@ -1,7 +1,8 @@
 import { Router } from 'express';
-import { analyzePrescription, getPrescriptionHistory } from '../controllers/prescription.controller';
+import { analyzePrescription, uploadAndAnalyzePrescription, getPrescriptionHistory } from '../controllers/prescription.controller';
 import { authenticateToken } from '../middleware/auth.middleware';
 import { asyncHandler } from '../middleware/error.middleware';
+import { uploadSingle } from '../middleware/upload.middleware';
 
 const router = Router();
 
@@ -10,10 +11,17 @@ router.use(authenticateToken);
 
 /**
  * @route   POST /prescription/analyze
- * @desc    Analyze a prescription
+ * @desc    Analyze a prescription from text
  * @access  Private
  */
 router.post('/analyze', asyncHandler(analyzePrescription));
+
+/**
+ * @route   POST /prescription/upload
+ * @desc    Upload and analyze a prescription image
+ * @access  Private
+ */
+router.post('/upload', uploadSingle, asyncHandler(uploadAndAnalyzePrescription));
 
 /**
  * @route   GET /prescription/history

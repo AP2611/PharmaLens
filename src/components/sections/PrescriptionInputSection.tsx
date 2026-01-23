@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { 
@@ -9,7 +9,8 @@ import {
   CheckCircle2,
   ArrowRight,
   Loader2,
-  X
+  X,
+  Image as ImageIcon
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiClient } from "@/lib/api";
@@ -33,8 +34,98 @@ export function PrescriptionInputSection({ onAnalysisComplete }: PrescriptionInp
   const [prescriptionText, setPrescriptionText] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showManualInput, setShowManualInput] = useState(false);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid File Type",
+          description: "Please upload an image file (JPEG, PNG, etc.)",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validate file size (10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          title: "File Too Large",
+          description: "Please upload an image smaller than 10MB",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setSelectedFile(file);
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+    }
+  };
+
+  const handleImageUpload = async () => {
+    if (!selectedFile) {
+      toast({
+        title: "Error",
+        description: "Please select an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to analyze prescriptions",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsAnalyzing(true);
+    try {
+      const response = await apiClient.uploadAndAnalyzePrescription(selectedFile);
+      
+      toast({
+        title: "Analysis Complete",
+        description: "Your prescription image has been analyzed successfully",
+      });
+
+      if (onAnalysisComplete) {
+        onAnalysisComplete(response.data.analysis);
+      }
+
+      // Scroll to dashboard
+      document.getElementById("guide")?.scrollIntoView({ behavior: "smooth" });
+      
+      // Reset form
+      setSelectedFile(null);
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+      }
+      setShowUploadDialog(false);
+      setSelectedMethod(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (error) {
+      toast({
+        title: "Analysis Failed",
+        description: error instanceof Error ? error.message : "Failed to analyze prescription image",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   const handleAnalyze = async () => {
     if (!prescriptionText.trim()) {
@@ -138,10 +229,7 @@ export function PrescriptionInputSection({ onAnalysisComplete }: PrescriptionInp
                   return;
                 }
                 setSelectedMethod("upload");
-                toast({
-                  title: "Coming Soon",
-                  description: "Image upload feature will be available soon. Please use manual entry for now.",
-                });
+                setShowUploadDialog(true);
               }}
               className={`group relative w-full flex flex-col items-center rounded-2xl border-2 p-8 text-left transition-all duration-300 animate-slide-up ${
                 selectedMethod === "upload"
@@ -238,19 +326,15 @@ export function PrescriptionInputSection({ onAnalysisComplete }: PrescriptionInp
             </button>
 
             {/* Continue Button */}
-            {selectedMethod && !showManualInput && (
+            {selectedMethod === "manual" && !showManualInput && (
               <div className="flex flex-col items-center gap-4 animate-fade-in">
                 <Button 
                   variant="hero" 
                   size="xl" 
                   className="w-full group"
-                  onClick={() => {
-                    if (selectedMethod === "manual") {
-                      setShowManualInput(true);
-                    }
-                  }}
+                  onClick={() => setShowManualInput(true)}
                 >
-                  Continue with {selectedMethod === "upload" ? "Upload" : "Manual Entry"}
+                  Continue with Manual Entry
                   <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
                 </Button>
               </div>
@@ -296,6 +380,112 @@ export function PrescriptionInputSection({ onAnalysisComplete }: PrescriptionInp
                   ) : (
                     <>
                       Analyze Prescription
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Image Upload Dialog */}
+        <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Upload Prescription Image</DialogTitle>
+              <DialogDescription>
+                Upload an image of your prescription. We'll extract the text and analyze it for you.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  id="prescription-upload"
+                />
+                <label
+                  htmlFor="prescription-upload"
+                  className="cursor-pointer flex flex-col items-center gap-2"
+                >
+                  {previewUrl ? (
+                    <div className="relative w-full">
+                      <img
+                        src={previewUrl}
+                        alt="Prescription preview"
+                        className="max-h-64 mx-auto rounded-lg border border-border"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute top-2 right-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedFile(null);
+                          if (previewUrl) {
+                            URL.revokeObjectURL(previewUrl);
+                            setPreviewUrl(null);
+                          }
+                          if (fileInputRef.current) {
+                            fileInputRef.current.value = '';
+                          }
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <ImageIcon className="h-12 w-12 text-muted-foreground" />
+                      <div>
+                        <span className="text-sm font-medium text-primary">Click to upload</span>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          PNG, JPG, GIF up to 10MB
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </label>
+              </div>
+              {selectedFile && (
+                <div className="text-sm text-muted-foreground">
+                  Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                </div>
+              )}
+              <div className="flex gap-2 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowUploadDialog(false);
+                    setSelectedFile(null);
+                    if (previewUrl) {
+                      URL.revokeObjectURL(previewUrl);
+                      setPreviewUrl(null);
+                    }
+                    if (fileInputRef.current) {
+                      fileInputRef.current.value = '';
+                    }
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleImageUpload}
+                  disabled={isAnalyzing || !selectedFile}
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      Analyze Image
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </>
                   )}

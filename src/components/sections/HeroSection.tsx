@@ -19,6 +19,15 @@ export function HeroSection() {
         <div className="grid gap-12 lg:grid-cols-2 lg:gap-16 items-center">
           {/* Left Content */}
           <div className="text-center lg:text-left">
+            {/* Logo */}
+            <div className="mb-8 flex justify-center lg:justify-start animate-fade-in">
+              <img 
+                src="/pharmalens-logo.svg" 
+                alt="PharmaLens Logo" 
+                className="h-16 w-auto"
+              />
+            </div>
+            
             {/* Badge */}
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-medium text-primary animate-fade-in">
               <Scan className="h-4 w-4 animate-pulse-soft" />

@@ -13,9 +13,8 @@ import {
   Image as ImageIcon
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { apiClient } from "@/lib/api";
+import { apiClient, PrescriptionResponse } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { PrescriptionAnalysis } from "@/lib/api";
 import {
   Dialog,
   DialogContent,
@@ -26,7 +25,7 @@ import {
 import { AuthDialog } from "@/components/auth/AuthDialog";
 
 interface PrescriptionInputSectionProps {
-  onAnalysisComplete?: (analysis: PrescriptionAnalysis) => void;
+  onAnalysisComplete?: (data: PrescriptionResponse['data']) => void;
 }
 
 export function PrescriptionInputSection({ onAnalysisComplete }: PrescriptionInputSectionProps) {
@@ -99,7 +98,7 @@ export function PrescriptionInputSection({ onAnalysisComplete }: PrescriptionInp
       });
 
       if (onAnalysisComplete) {
-        onAnalysisComplete(response.data.analysis);
+        onAnalysisComplete(response.data);
       }
 
       // Scroll to dashboard
@@ -158,7 +157,7 @@ export function PrescriptionInputSection({ onAnalysisComplete }: PrescriptionInp
       });
 
       if (onAnalysisComplete) {
-        onAnalysisComplete(response.data.analysis);
+        onAnalysisComplete(response.data);
       }
 
       // Scroll to dashboard

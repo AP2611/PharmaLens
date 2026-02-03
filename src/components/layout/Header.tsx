@@ -32,12 +32,26 @@ export function Header() {
       <div className="container flex h-16 items-center justify-between">
         {/* Logo */}
         <a href="#" className="flex items-center gap-2.5 transition-all duration-300 hover:opacity-80 hover:scale-[1.02]">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary animate-pulse-soft">
-            <Scan className="h-5 w-5 text-primary-foreground" />
+          <img 
+            src="/pharmalens-logo.svg" 
+            alt="PharmaLens Logo" 
+            className="h-12 w-auto"
+            onError={(e) => {
+              // Fallback to text if image fails to load
+              const target = e.target as HTMLImageElement;
+              target.style.display = 'none';
+              const fallback = target.nextElementSibling as HTMLElement;
+              if (fallback) fallback.style.display = 'flex';
+            }}
+          />
+          <div className="hidden items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary animate-pulse-soft">
+              <Scan className="h-5 w-5 text-primary-foreground" />
+            </div>
+            <span className="font-display text-xl font-semibold text-foreground">
+              PharmaLens
+            </span>
           </div>
-          <span className="font-display text-xl font-semibold text-foreground">
-            PharmaLens
-          </span>
         </a>
 
         {/* Desktop Navigation */}

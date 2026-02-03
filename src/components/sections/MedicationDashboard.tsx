@@ -11,14 +11,19 @@ import {
   Coffee
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PrescriptionAnalysis } from "@/lib/api";
+import { Download } from "lucide-react";
+import { PrescriptionResponse } from "@/lib/api";
+import { generatePrescriptionPDF } from "@/utils/pdfGenerator";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface MedicationDashboardProps {
-  analysis: PrescriptionAnalysis | null;
+  prescription: PrescriptionResponse['data'] | null;
 }
 
-export function MedicationDashboard({ analysis }: MedicationDashboardProps) {
-  if (!analysis) {
+export function MedicationDashboard({ prescription }: MedicationDashboardProps) {
+  const { user } = useAuth();
+  
+  if (!prescription || !prescription.analysis) {
     return (
       <section id="guide" className="py-20 bg-muted/30">
         <div className="container">
@@ -34,6 +39,23 @@ export function MedicationDashboard({ analysis }: MedicationDashboardProps) {
       </section>
     );
   }
+
+  const analysis = prescription.analysis;
+
+  // Handle PDF download
+  const handleDownloadPDF = async () => {
+    try {
+      await generatePrescriptionPDF({
+        analysis: analysis,
+        rawText: prescription.rawText,
+        userName: user?.name,
+        createdAt: prescription.createdAt,
+      });
+    } catch (error) {
+      console.error('Failed to generate PDF:', error);
+      alert('Failed to generate PDF. Please try again.');
+    }
+  };
 
   // Transform medication schedule for display
   const medications = analysis.medication_schedule.map((med) => ({
@@ -328,7 +350,8 @@ export function MedicationDashboard({ analysis }: MedicationDashboardProps) {
 
           {/* Action Buttons */}
           <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row animate-fade-in" style={{ animationDelay: "0.6s" }}>
-            <Button variant="hero" className="group">
+            <Button variant="hero" className="group" onClick={handleDownloadPDF}>
+              <Download className="mr-2 h-4 w-4 transition-transform group-hover:translate-y-[-2px]" />
               Download Full Report
             </Button>
             <Button variant="heroOutline" className="group">

@@ -36,6 +36,33 @@ export function createApp(): Express {
     });
   });
 
+  // Ollama health check endpoint
+  app.get('/health/ollama', async (req, res) => {
+    try {
+      const { OllamaService } = await import('./services/ollama.service');
+      const ollamaService = new OllamaService();
+      const isHealthy = await ollamaService.healthCheck();
+      const modelAvailable = await ollamaService.verifyModel();
+      
+      res.status(isHealthy ? 200 : 503).json({
+        status: isHealthy ? 'ok' : 'unavailable',
+        ollama: {
+          healthy: isHealthy,
+          model: process.env.OLLAMA_MODEL || 'qwen2.5:1.5b',
+          modelAvailable: modelAvailable,
+          baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
+        },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      res.status(503).json({
+        status: 'error',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString(),
+      });
+    }
+  });
+
   // API Routes
   app.use('/auth', authRoutes);
   app.use('/prescription', prescriptionRoutes);

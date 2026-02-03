@@ -1,9 +1,22 @@
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
+import http from 'http';
+import https from 'https';
 import fs from 'fs/promises';
 import path from 'path';
 
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
 const OLLAMA_VISION_MODEL = process.env.OLLAMA_VISION_MODEL || 'llava:latest';
+
+// Create optimized axios instance for vision model
+const visionAxiosInstance: AxiosInstance = axios.create({
+  baseURL: OLLAMA_BASE_URL,
+  timeout: 90000, // 90 seconds for vision processing
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  httpAgent: new http.Agent({ keepAlive: true, keepAliveMsecs: 1000 }),
+  httpsAgent: new https.Agent({ keepAlive: true, keepAliveMsecs: 1000 }),
+});
 
 /**
  * Converts image file to base64 string
@@ -27,8 +40,9 @@ export async function extractTextFromImage(imagePath: string): Promise<string> {
 
     // Try chat endpoint first (for vision models like llava)
     try {
-      const chatResponse = await axios.post(
-        `${OLLAMA_BASE_URL}/api/chat`,
+      const startTime = Date.now();
+      const chatResponse = await visionAxiosInstance.post(
+        '/api/chat',
         {
           model: OLLAMA_VISION_MODEL,
           messages: [
@@ -39,51 +53,62 @@ export async function extractTextFromImage(imagePath: string): Promise<string> {
             },
           ],
           stream: false,
-        },
-        {
-          timeout: 120000, // 2 minute timeout for vision processing
         }
       );
+
+      const duration = Date.now() - startTime;
+      console.log(`[Ollama Vision] Text extraction completed in ${duration}ms using ${OLLAMA_VISION_MODEL}`);
 
       if (chatResponse.data.message?.content) {
         return chatResponse.data.message.content.trim();
       }
     } catch (chatError) {
       // If chat endpoint fails, try generate endpoint with images
-      const generateResponse = await axios.post(
-        `${OLLAMA_BASE_URL}/api/generate`,
-        {
-          model: OLLAMA_VISION_MODEL,
-          prompt: prompt,
-          images: [base64Image],
-          stream: false,
-        },
-        {
-          timeout: 120000,
-        }
-      );
+      try {
+        const startTime = Date.now();
+        const generateResponse = await visionAxiosInstance.post(
+          '/api/generate',
+          {
+            model: OLLAMA_VISION_MODEL,
+            prompt: prompt,
+            images: [base64Image],
+            stream: false,
+          }
+        );
 
-      if (generateResponse.data.response) {
-        return generateResponse.data.response.trim();
+        const duration = Date.now() - startTime;
+        console.log(`[Ollama Vision] Text extraction completed in ${duration}ms using ${OLLAMA_VISION_MODEL}`);
+
+        if (generateResponse.data.response) {
+          return generateResponse.data.response.trim();
+        }
+      } catch (generateError) {
+        throw chatError; // Throw original error
       }
     }
 
     throw new Error('Empty response from Ollama vision model');
   } catch (error) {
     if (axios.isAxiosError(error)) {
-      if (error.code === 'ECONNREFUSED') {
-        throw new Error('Ollama service is not running. Please start Ollama on localhost:11434');
+      if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+        throw new Error('Ollama service is not running. Please ensure Ollama is running on localhost:11434');
       }
-      if (error.code === 'ETIMEDOUT') {
-        throw new Error('Vision model request timed out. The model may be too slow or unavailable.');
+      if (error.code === 'ETIMEDOUT' || error.code === 'ECONNABORTED') {
+        throw new Error(`Vision model request timed out after 90 seconds. The model ${OLLAMA_VISION_MODEL} may be slow or unavailable.`);
       }
-      // If vision model is not available, try fallback
+      // If vision model is not available
       if (error.response?.status === 404 || error.message.includes('model')) {
-        throw new Error('Vision model not available. Please install a vision model like llava:latest using: ollama pull llava:latest');
+        throw new Error(`Vision model ${OLLAMA_VISION_MODEL} not found. Please install it: ollama pull ${OLLAMA_VISION_MODEL}`);
+      }
+      if (error.response?.status === 500) {
+        throw new Error(`Ollama server error: ${error.response.data?.error || 'Internal server error'}`);
       }
       throw new Error(`Ollama vision API error: ${error.message}`);
     }
-    throw error;
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('Unknown error occurred while extracting text from image');
   }
 }
 

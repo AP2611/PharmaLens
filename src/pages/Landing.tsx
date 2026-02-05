@@ -94,7 +94,7 @@ export default function Landing() {
   ];
 
   return (
-    <div className="min-h-screen bg-white overflow-hidden">
+    <div className="min-h-screen bg-white overflow-x-hidden">
       {/* Hero Section */}
       <section ref={heroRef} className="relative min-h-screen flex items-center justify-center px-4 py-20">
         <div className="max-w-6xl mx-auto text-center">

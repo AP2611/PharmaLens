@@ -9,19 +9,51 @@ interface PDFOptions {
 }
 
 /**
- * Converts SVG logo to base64 for PDF embedding
+ * Loads the PharmaLens logo and converts it to a PNG data URL
+ * This is more reliable with jsPDF than using raw SVG.
  */
-async function getLogoBase64(): Promise<string> {
-  try {
-    const response = await fetch('/pharmalens-logo.svg');
-    const svgText = await response.text();
-    // Convert SVG to data URL
-    const base64 = btoa(unescape(encodeURIComponent(svgText)));
-    return `data:image/svg+xml;base64,${base64}`;
-  } catch (error) {
-    console.error('Failed to load logo:', error);
-    return '';
-  }
+async function getLogoPngDataUrl(): Promise<string | null> {
+  return new Promise((resolve) => {
+    try {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          // Scale up a bit for sharper rendering
+          const targetWidth = 160;
+          const aspectRatio = img.width / img.height || 4;
+          const targetHeight = targetWidth / aspectRatio;
+
+          canvas.width = targetWidth;
+          canvas.height = targetHeight;
+
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(null);
+            return;
+          }
+
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+          const dataUrl = canvas.toDataURL('image/png');
+          resolve(dataUrl);
+        } catch (e) {
+          console.error('Failed to render logo to canvas:', e);
+          resolve(null);
+        }
+      };
+      img.onerror = (e) => {
+        console.error('Failed to load logo image:', e);
+        resolve(null);
+      };
+      img.src = '/pharmalens-logo.svg';
+    } catch (error) {
+      console.error('Error preparing logo image:', error);
+      resolve(null);
+    }
+  });
 }
 
 /**
@@ -42,33 +74,39 @@ export async function generatePrescriptionPDF(options: PDFOptions): Promise<void
   let yPosition = margin;
 
   // Load logo
-  const logoBase64 = await getLogoBase64();
+  const logoPngDataUrl = await getLogoPngDataUrl();
   
   // Add logo at the top
-  if (logoBase64) {
+  if (logoPngDataUrl) {
     try {
-      doc.addImage(logoBase64, 'SVG', margin, yPosition, 60, 20);
+      // Top-left, neat size
+      const logoWidth = 40;
+      const logoHeight = 14;
+      doc.addImage(logoPngDataUrl, 'PNG', margin, yPosition, logoWidth, logoHeight);
     } catch (error) {
-      // If SVG fails, add text logo
+      console.error('Failed to add logo to PDF, falling back to text logo:', error);
       doc.setFontSize(20);
       doc.setTextColor(30, 64, 175); // Dark blue
       doc.text('PharmaLens', margin, yPosition + 10);
     }
   } else {
+    // Fallback text logo
     doc.setFontSize(20);
     doc.setTextColor(30, 64, 175);
     doc.text('PharmaLens', margin, yPosition + 10);
   }
 
-  // Add tagline
-  doc.setFontSize(8);
-  doc.setTextColor(100, 100, 100);
-  doc.text('MAKING MEDICINES SAFER TO USE', margin + 65, yPosition + 12);
+  // Add tagline aligned under the logo
+  doc.setFontSize(9);
+  doc.setTextColor(80, 80, 80);
+  doc.setFont(undefined, 'normal');
+  doc.text('MAKING MEDICINES SAFER TO USE', margin, yPosition + 18);
 
+  // Move content a bit lower so header has breathing room
   yPosition += 30;
 
   // Add report title
-  doc.setFontSize(18);
+  doc.setFontSize(16);
   doc.setTextColor(0, 0, 0);
   doc.setFont(undefined, 'bold');
   doc.text('Prescription Analysis Report', margin, yPosition);

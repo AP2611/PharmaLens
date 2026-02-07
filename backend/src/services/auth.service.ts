@@ -9,6 +9,13 @@ export interface RegisterInput {
   name: string;
   email: string;
   password: string;
+  phone?: string;
+  dateOfBirth?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
 }
 
 export interface LoginInput {
@@ -21,6 +28,13 @@ export interface AuthResult {
     id: string;
     name: string;
     email: string;
+    phone?: string | null;
+    dateOfBirth?: Date | null;
+    address?: string | null;
+    city?: string | null;
+    state?: string | null;
+    zipCode?: string | null;
+    country?: string | null;
   };
   token: string;
 }
@@ -51,11 +65,25 @@ export class AuthService {
         name: input.name,
         email: input.email,
         passwordHash: passwordHash,
+        phone: input.phone || null,
+        dateOfBirth: input.dateOfBirth ? new Date(input.dateOfBirth) : null,
+        address: input.address || null,
+        city: input.city || null,
+        state: input.state || null,
+        zipCode: input.zipCode || null,
+        country: input.country || null,
       },
       select: {
         id: true,
         name: true,
         email: true,
+        phone: true,
+        dateOfBirth: true,
+        address: true,
+        city: true,
+        state: true,
+        zipCode: true,
+        country: true,
         createdAt: true,
       },
     });
@@ -72,6 +100,13 @@ export class AuthService {
         id: user.id,
         name: user.name,
         email: user.email,
+        phone: user.phone,
+        dateOfBirth: user.dateOfBirth,
+        address: user.address,
+        city: user.city,
+        state: user.state,
+        zipCode: user.zipCode,
+        country: user.country,
       },
       token,
     };
@@ -84,6 +119,19 @@ export class AuthService {
     // Find user by email
     const user = await prisma.user.findUnique({
       where: { email: input.email },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        passwordHash: true,
+        phone: true,
+        dateOfBirth: true,
+        address: true,
+        city: true,
+        state: true,
+        zipCode: true,
+        country: true,
+      },
     });
 
     if (!user) {
@@ -109,6 +157,13 @@ export class AuthService {
         id: user.id,
         name: user.name,
         email: user.email,
+        phone: user.phone,
+        dateOfBirth: user.dateOfBirth,
+        address: user.address,
+        city: user.city,
+        state: user.state,
+        zipCode: user.zipCode,
+        country: user.country,
       },
       token,
     };

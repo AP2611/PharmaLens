@@ -4,6 +4,13 @@ export interface RegisterRequest {
   name: string;
   email: string;
   password: string;
+  phone?: string;
+  dateOfBirth?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
 }
 
 export interface LoginRequest {
@@ -18,9 +25,47 @@ export interface AuthResponse {
       id: string;
       name: string;
       email: string;
+      phone?: string | null;
+      dateOfBirth?: string | null;
+      address?: string | null;
+      city?: string | null;
+      state?: string | null;
+      zipCode?: string | null;
+      country?: string | null;
     };
     token: string;
   };
+}
+
+export interface ProfileData {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  dateOfBirth: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  zipCode: string | null;
+  country: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProfileResponse {
+  message: string;
+  data: ProfileData;
+}
+
+export interface UpdateProfileRequest {
+  name?: string;
+  phone?: string;
+  dateOfBirth?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
 }
 
 export interface PrescriptionAnalysisRequest {
@@ -163,6 +208,18 @@ class ApiClient {
 
   async getPrescriptionHistory(): Promise<PrescriptionHistoryResponse> {
     return this.request<PrescriptionHistoryResponse>('/prescription/history');
+  }
+
+  // Profile endpoints
+  async getProfile(): Promise<ProfileResponse> {
+    return this.request<ProfileResponse>('/profile');
+  }
+
+  async updateProfile(data: UpdateProfileRequest): Promise<ProfileResponse> {
+    return this.request<ProfileResponse>('/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   }
 
   // Upload and analyze prescription image

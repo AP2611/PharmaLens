@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.routes';
 import prescriptionRoutes from './routes/prescription.routes';
+import profileRoutes from './routes/profile.routes';
 import { errorHandler } from './middleware/error.middleware';
 
 // Load environment variables
@@ -66,6 +67,7 @@ export function createApp(): Express {
   // API Routes
   app.use('/auth', authRoutes);
   app.use('/prescription', prescriptionRoutes);
+  app.use('/profile', profileRoutes);
 
   // 404 handler
   app.use((req, res) => {

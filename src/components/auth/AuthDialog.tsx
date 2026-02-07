@@ -25,6 +25,13 @@ export function AuthDialog() {
     name: "",
     email: "",
     password: "",
+    phone: "",
+    dateOfBirth: "",
+    address: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    country: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -46,6 +53,13 @@ export function AuthDialog() {
           name: formData.name,
           email: formData.email,
           password: formData.password,
+          phone: formData.phone || undefined,
+          dateOfBirth: formData.dateOfBirth || undefined,
+          address: formData.address || undefined,
+          city: formData.city || undefined,
+          state: formData.state || undefined,
+          zipCode: formData.zipCode || undefined,
+          country: formData.country || undefined,
         });
         toast({
           title: "Account created!",
@@ -53,7 +67,18 @@ export function AuthDialog() {
         });
       }
       setIsOpen(false);
-      setFormData({ name: "", email: "", password: "" });
+      setFormData({ 
+        name: "", 
+        email: "", 
+        password: "",
+        phone: "",
+        dateOfBirth: "",
+        address: "",
+        city: "",
+        state: "",
+        zipCode: "",
+        country: "",
+      });
     } catch (error) {
       toast({
         title: "Error",
@@ -123,6 +148,97 @@ export function AuthDialog() {
               minLength={6}
             />
           </div>
+          {!isLogin && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number (Optional)</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="+1 (555) 123-4567"
+                  value={formData.phone}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phone: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dateOfBirth">Date of Birth (Optional)</Label>
+                <Input
+                  id="dateOfBirth"
+                  type="date"
+                  value={formData.dateOfBirth}
+                  onChange={(e) =>
+                    setFormData({ ...formData, dateOfBirth: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="address">Address (Optional)</Label>
+                <Input
+                  id="address"
+                  type="text"
+                  placeholder="123 Main Street"
+                  value={formData.address}
+                  onChange={(e) =>
+                    setFormData({ ...formData, address: e.target.value })
+                  }
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="city">City (Optional)</Label>
+                  <Input
+                    id="city"
+                    type="text"
+                    placeholder="New York"
+                    value={formData.city}
+                    onChange={(e) =>
+                      setFormData({ ...formData, city: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="state">State (Optional)</Label>
+                  <Input
+                    id="state"
+                    type="text"
+                    placeholder="NY"
+                    value={formData.state}
+                    onChange={(e) =>
+                      setFormData({ ...formData, state: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="zipCode">Zip Code (Optional)</Label>
+                  <Input
+                    id="zipCode"
+                    type="text"
+                    placeholder="10001"
+                    value={formData.zipCode}
+                    onChange={(e) =>
+                      setFormData({ ...formData, zipCode: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="country">Country (Optional)</Label>
+                  <Input
+                    id="country"
+                    type="text"
+                    placeholder="United States"
+                    value={formData.country}
+                    onChange={(e) =>
+                      setFormData({ ...formData, country: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+            </>
+          )}
           <div className="flex flex-col gap-2">
             <Button type="submit" disabled={isLoading} className="w-full">
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -133,7 +249,18 @@ export function AuthDialog() {
               variant="ghost"
               onClick={() => {
                 setIsLogin(!isLogin);
-                setFormData({ name: "", email: "", password: "" });
+                setFormData({ 
+                  name: "", 
+                  email: "", 
+                  password: "",
+                  phone: "",
+                  dateOfBirth: "",
+                  address: "",
+                  city: "",
+                  state: "",
+                  zipCode: "",
+                  country: "",
+                });
               }}
             >
               {isLogin

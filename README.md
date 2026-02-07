@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="public/pharmalens-logo.svg" alt="PharmaLens Logo" width="200" />
+</div>
+
 # PharmaLens
 
 A production-ready medical web application that provides intelligent prescription analysis and medication guidance using AI. PharmaLens helps users understand their medications, identify potential drug interactions, and receive personalized safety recommendations.
@@ -163,21 +167,27 @@ PharmaLens/
 └── package.json           # Frontend dependencies
 ```
 
-## 🔐 Authentication
+## 🔐 Authentication & User Profiles
 
 PharmaLens uses JWT-based authentication:
 
-1. **Register**: Create a new account with name, email, and password
+1. **Register**: Create a new account with name, email, password, and optional profile information (phone, date of birth, address, etc.)
 2. **Login**: Sign in with email and password
-3. **Protected Routes**: Prescription analysis requires authentication
-4. **Token Storage**: JWT tokens are stored in localStorage
+3. **Profile Management**: View and edit your profile information including contact details and address
+4. **Protected Routes**: Prescription analysis and profile management require authentication
+5. **Token Storage**: JWT tokens are stored in localStorage
 
 ## 📡 API Endpoints
 
 ### Authentication (Public)
 
-- `POST /auth/register` - Register a new user
+- `POST /auth/register` - Register a new user (with profile data)
 - `POST /auth/login` - Login user
+
+### Profile (Protected)
+
+- `GET /profile` - Get user profile
+- `PUT /profile` - Update user profile
 
 ### Prescription (Protected)
 
@@ -195,6 +205,7 @@ See [backend/README.md](./backend/README.md) for detailed API documentation.
 ### Frontend Features
 - ✅ Modern, responsive UI with Tailwind CSS
 - ✅ User authentication (Register/Login)
+- ✅ User profile management (view and edit profile data)
 - ✅ Prescription input (manual text entry)
 - ✅ Real-time prescription analysis
 - ✅ Interactive medication dashboard
